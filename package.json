@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tiptap/react": "^3.29.2",
+    "@tiptap/starter-kit": "^3.29.2",
     "bootstrap": "^5.3.8",
     "firebase": "^12.17.0",
     "react": "^19.2.8",
