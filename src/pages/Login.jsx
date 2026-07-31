@@ -1,42 +1,38 @@
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../firebase";
 import { Form, Button, Card, Container, Row, Col } from "react-bootstrap";
 import { useState } from "react";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../firebase";
 import signupImage from "../assets/signUp.jpeg";
-import {Link,useNavigate} from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 
-const Signup = () => {
-
-    const navigate=useNavigate();
+const Login = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
+    const navigate = useNavigate();
 
-    const isFormValid =
-        email.trim() &&
-        password.trim() &&
-        confirmPassword.trim() &&
-        password === confirmPassword;
+    const isFormValid = email.trim() && password.trim();
 
     const submitHandler = async (e) => {
         e.preventDefault();
+
         try {
-            const response = await createUserWithEmailAndPassword(
+            const response = await signInWithEmailAndPassword(
                 auth,
                 email.trim(),
-                password
-            );
-
-            alert("Account has been create Successfully !! ");
-            navigate("/login");
-            
-
+                password.trim()
+            )
+            const token = await response.user.getIdToken();
+            localStorage.setItem("token", token);
+            navigate("/home");
         }
+
         catch (err) {
             alert(err.message);
         }
+
     }
+
 
     return (
         <Container className="d-flex justify-content-center align-items-center vh-100 bg-dark">
@@ -57,7 +53,7 @@ const Signup = () => {
 
                     <Col md={6}>
                         <Card.Body>
-                            <h3 className="text-center mb-4">Sign Up</h3>
+                            <h3 className="text-center mb-4">Login</h3>
 
                             <Form onSubmit={submitHandler}>
                                 <Form.Group className="mb-3">
@@ -81,24 +77,13 @@ const Signup = () => {
                                         required
                                     />
                                 </Form.Group>
-
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Confirm Password</Form.Label>
-                                    <Form.Control
-                                        type="password"
-                                        placeholder="Confirm password"
-                                        value={confirmPassword}
-                                        onChange={(e) => setConfirmPassword(e.target.value)}
-                                        required
-                                    />
-                                </Form.Group>
-                              
+                            
                                 <Button className="w-100 mt-3" type="submit" disabled={!isFormValid}>
-                                    Sign Up
+                                    Login
                                 </Button>
-                                  <div className="text-center mt-3">
-                                    Already have an account?{" "}
-                                    <Link  to="/login">Login</Link>
+                                    <div className="text-center mt-3">
+                                    Don't have an account?{" "}
+                                    <Link to="/signup">Sign Up</Link>
                                 </div>
                             </Form>
                         </Card.Body>
@@ -108,8 +93,7 @@ const Signup = () => {
             </Card>
         </Container>
 
-
     )
 
 }
-export default Signup;
+export default Login
