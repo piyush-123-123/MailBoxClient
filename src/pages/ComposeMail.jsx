@@ -2,98 +2,160 @@ import { useState } from "react";
 import { Container, Card, Form, Button } from "react-bootstrap";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import { auth } from "../firebase"
 
 const ComposeMail = () => {
-  const [to, setTo] = useState("");
-  const [subject, setSubject] = useState("");
+    const [to, setTo] = useState("");
+    const [subject, setSubject] = useState("");
 
-  const editor = useEditor({
-    extensions: [StarterKit],
-    content: "",
-  });
+    const editor = useEditor({
+        extensions: [StarterKit],
+        content: "",
+    });
 
-  const submitHandler = (e) => {
-    e.preventDefault();
+    const submitHandler = async (e) => {
 
-    console.log("To:", to);
-    console.log("Subject:", subject);
-    console.log("Message:", editor?.getHTML());
-  };
+        e.preventDefault();
+        const senderEmail = auth.currentUser.email;
+        const mailData = {
+            from: senderEmail,
+            to: to.trim(),
+            subject: subject.trim(),
+            message: editor.getHTML(),
+        };
+        const senderId = senderEmail.replace(/[.#$/[\]]/g, "_");
+        const receiverId = to.trim().replace(/[.#$/[\]]/g, "_");
+        try {
+            const response = await fetch(
+                `https://mailboxclient-9e998-default-rtdb.firebaseio.com/${senderId}/sent.json`,
+                {
+                    method: "POST",
+                    body: JSON.stringify(mailData),
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+            if (!response.ok) {
+                throw new Error("Failed to send mail");
+            }
+            const receiverResponse = await fetch(
+                `https://mailboxclient-9e998-default-rtdb.firebaseio.com//${receiverId}/inbox.json`,
+                {
+                    method: "POST",
+                    body: JSON.stringify(mailData),
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
 
-  return (
-    <Container className="mt-5">
-      <Card className="p-4 shadow">
+            if (!receiverResponse.ok) {
+                throw new Error("Failed to deliver mail");
+            }
+            alert("Mail sent successfully!");
+        }
+        catch (err) {
+            console.log(err.message);
+        }
+    };
 
-        <h3 className="mb-4">Compose Mail</h3>
+    return (
+        <Container className="mt-5">
+            <Card className="p-4 shadow">
 
-        <Form onSubmit={submitHandler}>
+                <h3 className="mb-4">Compose Mail</h3>
 
-          <Form.Group className="mb-3">
-            <Form.Label>To</Form.Label>
+                <Form onSubmit={submitHandler}>
 
-            <Form.Control
-              type="email"
-              placeholder="Enter receiver email"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-            />
-          </Form.Group>
+                    <Form.Group className="mb-3">
+                        <Form.Label>To</Form.Label>
 
-          <Form.Group className="mb-3">
-            <Form.Label>Subject</Form.Label>
+                        <Form.Control
+                            type="email"
+                            placeholder="Enter receiver email"
+                            value={to}
+                            onChange={(e) => setTo(e.target.value)}
+                        />
+                    </Form.Group>
 
-            <Form.Control
-              type="text"
-              placeholder="Enter subject"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-            />
-          </Form.Group>
+                    <Form.Group className="mb-3">
+                        <Form.Label>Subject</Form.Label>
 
-          <Form.Group className="mb-3">
-            <Form.Label>Message</Form.Label>
-<div className="mb-2">
-  <Button
-    variant="outline-secondary"
-    size="sm"
-    className="me-2"
-    onClick={() => editor.chain().focus().toggleBold().run()}
-  >
-    Bold
-  </Button>
+                        <Form.Control
+                            type="text"
+                            placeholder="Enter subject"
+                            value={subject}
+                            onChange={(e) => setSubject(e.target.value)}
+                        />
+                    </Form.Group>
 
-  <Button
-    variant="outline-secondary"
-    size="sm"
-    className="me-2"
-    onClick={() => editor.chain().focus().toggleItalic().run()}
-  >
-    Italic
-  </Button>
+                    <Form.Group className="mb-3">
+                        <Form.Label>Message</Form.Label>
+                        <div className="mb-2">
+                            <Button
+                                variant="outline-secondary"
+                                size="sm"
+                                className="me-2"
+                                onClick={() => editor.chain().focus().toggleBold().run()}
+                            >
+                                Bold
+                            </Button>
 
-  <Button
-    variant="outline-secondary"
-    size="sm"
-    onClick={() => editor.chain().focus().toggleBulletList().run()}
-  >
-    Bullet List
-  </Button>
-</div>
-            <Card className="p-2">
-                
-              <EditorContent editor={editor} />
+                            <Button
+                                variant="outline-secondary"
+                                size="sm"
+                                className="me-2"
+                                onClick={() => editor.chain().focus().toggleItalic().run()}
+                            >
+                                Italic
+                            </Button>
+
+                            <Button
+                                variant="outline-secondary"
+                                size="sm"
+                                className="me-2"
+                                onClick={() => editor.chain().focus().toggleBulletList().run()}
+                            >
+                                Bullet List
+                            </Button>
+                            <Button
+                                variant="outline-secondary"
+                                size="sm"
+                                className="me-2"
+                                disabled={!editor}
+                                onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                            >
+                                Numbered List
+                            </Button>
+
+                            <Button
+                                variant="outline-secondary"
+                                size="sm"
+                                disabled={!editor}
+                                onClick={() =>
+                                    editor.chain().focus().toggleHeading({ level: 2 }).run()
+                                }
+                            >
+                                Heading
+                            </Button>
+                        </div>
+
+                        <Card className="p-2">
+
+                            <EditorContent editor={editor} />
+                        </Card>
+                    </Form.Group>
+
+                    <Button type="submit">
+                        Send
+                    </Button>
+
+                </Form>
+
             </Card>
-          </Form.Group>
-
-          <Button type="submit">
-            Send
-          </Button>
-
-        </Form>
-
-      </Card>
-    </Container>
-  );
+        </Container>
+    );
 };
 
 export default ComposeMail;

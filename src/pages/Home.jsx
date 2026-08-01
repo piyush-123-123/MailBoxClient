@@ -1,10 +1,18 @@
-
+import {Button} from "react-bootstrap";
+import {useNavigate} from "react-router-dom";
 
 const Home=()=>{
+    const navigate=useNavigate();
+
+    const sendMailHandler=()=>{
+         navigate("/composeMail");
+     
+    }
 
     return (
         <div>
-            <h1>Welcome MailBox Client</h1>
+            <Button onClick={sendMailHandler}>Click to send mail</Button>
+            
         </div>
     )
 
