@@ -22,6 +22,7 @@ const ComposeMail = () => {
             to: to.trim(),
             subject: subject.trim(),
             message: editor.getHTML(),
+            isRead: false
         };
         const senderId = senderEmail.replace(/[.#$/[\]]/g, "_");
         const receiverId = to.trim().replace(/[.#$/[\]]/g, "_");
@@ -40,7 +41,7 @@ const ComposeMail = () => {
                 throw new Error("Failed to send mail");
             }
             const receiverResponse = await fetch(
-                `https://mailboxclient-9e998-default-rtdb.firebaseio.com//${receiverId}/inbox.json`,
+                `https://mailboxclient-9e998-default-rtdb.firebaseio.com/${receiverId}/inbox.json`,
                 {
                     method: "POST",
                     body: JSON.stringify(mailData),
