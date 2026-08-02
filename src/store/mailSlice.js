@@ -9,10 +9,10 @@ const initialState = {
 
 export const deleteMail = createAsyncThunk(
   "mail/deleteMail",
-  async ({ userId, mailId }, { rejectWithValue }) => {
+  async ({ userId,folder, mailId }, { rejectWithValue }) => {
     try {
       const response = await fetch(
-        `https://mailboxclient-9e998-default-rtdb.firebaseio.com/${userId}/inbox/${mailId}.json`,
+        `https://mailboxclient-9e998-default-rtdb.firebaseio.com/${userId}/${folder}/${mailId}.json`,
         {
           method: "DELETE",
         }
@@ -31,9 +31,9 @@ export const deleteMail = createAsyncThunk(
 
 export const fetchInboxMails = createAsyncThunk(
   "mail/fetchInboxMails",
-  async (userId) => {
+  async ({userId,folder}) => {
     const response = await fetch(
-      `https://mailboxclient-9e998-default-rtdb.firebaseio.com/${userId}/inbox.json`
+      `https://mailboxclient-9e998-default-rtdb.firebaseio.com/${userId}/${folder}.json`
     );
 
     if (!response.ok) {
@@ -89,7 +89,7 @@ extraReducers: (builder) => {
       state.loading = false;
       state.error = action.error.message;
     })
-    
+
       .addCase(deleteMail.fulfilled, (state, action) => {
       state.mails = state.mails.filter(
         (mail) => mail.id !== action.payload

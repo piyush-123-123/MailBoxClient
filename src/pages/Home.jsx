@@ -12,7 +12,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchInboxMails, markMailAsRead } from "../store/mailSlice";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { deleteMail } from "../store/mailSlice";
 
 
@@ -23,6 +23,7 @@ const Home = () => {
     );
 
     const [selectedMail, setSelectedMail] = useState(null);
+    const [folder, setFolder] = useState("inbox");
     const unreadCount = mails.filter((mail) => !mail.isRead).length;
 
     const navigate = useNavigate();
@@ -33,11 +34,16 @@ const Home = () => {
 
             const userId = user.email.replace(/[.#$/[\]]/g, "_");
 
-            dispatch(fetchInboxMails(userId));
+            dispatch(
+  fetchInboxMails({
+    userId,
+    folder,
+  })
+);
         });
 
         return () => unsubscribe();
-    }, [dispatch]);
+    }, [dispatch,folder]);
 
 
     const deleteMailHandler = (mailId) => {
@@ -47,6 +53,7 @@ const Home = () => {
             deleteMail({
                 userId,
                 mailId,
+                folder
             })
         );
 
@@ -59,7 +66,7 @@ const Home = () => {
         const userId = auth.currentUser.email.replace(/[.#$/[\]]/g, "_");
 
         const response = await fetch(
-            `https://mailboxclient-9e998-default-rtdb.firebaseio.com/${userId}/inbox/${mail.id}.json`,
+            `https://mailboxclient-9e998-default-rtdb.firebaseio.com/${userId}/${folder}/${mail.id}.json`,
             {
                 method: "PATCH",
                 headers: {
@@ -86,6 +93,14 @@ const Home = () => {
     if (error) {
         return <h3>{error}</h3>;
     }
+   const logoutHandler = async () => {
+    try {
+        await signOut(auth);
+        navigate("/login");
+    } catch (err) {
+        console.log(err.message);
+    }
+};
 
     return (
         <Container fluid>
@@ -101,21 +116,39 @@ const Home = () => {
                         >
                             Compose
                         </Button>
+                          <Button
+        variant="outline-light"
+        onClick={logoutHandler}
+    >
+        Logout
+    </Button>
                     </Navbar>
                 </Col>
             </Row>
 
             <Row className="mt-3">
                 <Col md={2}>
-                    <ListGroup variant="flush">
-                        <ListGroup.Item action>
-                            📥 Inbox ({unreadCount})
-                        </ListGroup.Item>
+                    <ListGroup.Item
+                        action
+                        active={folder === "inbox"}
+                        onClick={() => {
+                            setFolder("inbox");
+                            setSelectedMail(null);
+                        }}
+                    >
+                        📥 Inbox {folder === "inbox" && `(${unreadCount})`}
+                    </ListGroup.Item>
 
-                        <ListGroup.Item action>
-                            📤 Sent
-                        </ListGroup.Item>
-                    </ListGroup>
+                    <ListGroup.Item
+                        action
+                        active={folder === "sent"}
+                        onClick={() => {
+                            setFolder("sent");
+                            setSelectedMail(null);
+                        }}
+                    >
+                        📤 Sent
+                    </ListGroup.Item>
                 </Col>
 
                 <Col md={10}>
@@ -136,9 +169,10 @@ const Home = () => {
 
                                 <h3>{selectedMail.subject}</h3>
 
-                                <p className="text-muted mb-3">
-                                    <strong>From:</strong> {selectedMail.from}
-                                </p>
+                               <p className="text-muted mb-3">
+    <strong>{folder === "inbox" ? "From" : "To"}:</strong>{" "}
+    {folder === "inbox" ? selectedMail.from : selectedMail.to}
+</p>
 
                                 <hr />
 
@@ -186,9 +220,10 @@ const Home = () => {
                                             {mail.subject}
                                         </h5>
 
-                                        <p className="mb-0">
-                                            <strong>From:</strong> {mail.from}
-                                        </p>
+                                       <p className="mb-0">
+    <strong>{folder === "inbox" ? "From" : "To"}:</strong>{" "}
+    {folder === "inbox" ? mail.from : mail.to}
+</p>
                                     </Card>
                                 ))
                             )
