@@ -8,88 +8,84 @@ import {
     Card,
     ListGroup,
 } from "react-bootstrap";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchInboxMails, markMailAsRead } from "../store/mailSlice";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
+import { deleteMail } from "../store/mailSlice";
 
 
 const Home = () => {
-    const [mails, setMails] = useState([]);
+
+    const { mails, loading, error } = useSelector(
+        (state) => state.mail
+    );
+
     const [selectedMail, setSelectedMail] = useState(null);
     const unreadCount = mails.filter((mail) => !mail.isRead).length;
 
-
     const navigate = useNavigate();
-
+    const dispatch = useDispatch();
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-
-            if (!user) {
-                setMails([]);
-                return;
-            }
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (!user) return;
 
             const userId = user.email.replace(/[.#$/[\]]/g, "_");
 
-
-            try {
-                const response = await fetch(
-                    `https://mailboxclient-9e998-default-rtdb.firebaseio.com/${userId}/inbox.json`
-                );
-
-                if (!response.ok) {
-                    throw new Error("Failed to fetch mails");
-                }
-
-                const data = await response.json();
-
-                if (!data) {
-                    setMails([]);
-                    return;
-                }
-
-                const loadedMails = [];
-
-                for (const key in data) {
-                    loadedMails.push({
-                        id: key,
-                        ...data[key],
-                    });
-                }
-
-                setMails(loadedMails);
-            } catch (err) {
-                console.log(err.message);
-            }
+            dispatch(fetchInboxMails(userId));
         });
 
         return () => unsubscribe();
-    }, []);
-   const openMailHandler = async (mail) => {
-  setSelectedMail(mail);
+    }, [dispatch]);
 
-  const userId = auth.currentUser.email.replace(/[.#$/[\]]/g, "_");
 
-  await fetch(
-    `https://mailboxclient-9e998-default-rtdb.firebaseio.com/${userId}/inbox/${mail.id}.json`,
-    {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        isRead: true,
-      }),
+    const deleteMailHandler = (mailId) => {
+        const userId = auth.currentUser.email.replace(/[.#$/[\]]/g, "_");
+
+        dispatch(
+            deleteMail({
+                userId,
+                mailId,
+            })
+        );
+
+        setSelectedMail(null);
+    };
+
+    const openMailHandler = async (mail) => {
+        setSelectedMail(mail);
+
+        const userId = auth.currentUser.email.replace(/[.#$/[\]]/g, "_");
+
+        const response = await fetch(
+            `https://mailboxclient-9e998-default-rtdb.firebaseio.com/${userId}/inbox/${mail.id}.json`,
+            {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    isRead: true,
+                }),
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error("Failed to update mail");
+        }
+
+        dispatch(markMailAsRead(mail.id));
+
+
+    };
+    if (loading) {
+        return <h3>Loading...</h3>;
     }
-  );
-  setMails((prevMails) =>
-  prevMails.map((item) =>
-    item.id === mail.id
-      ? { ...item, isRead: true }
-      : item
-  )
-);
-};
+
+    if (error) {
+        return <h3>{error}</h3>;
+    }
 
     return (
         <Container fluid>
@@ -129,7 +125,7 @@ const Home = () => {
                         <hr />
 
                         {selectedMail ? (
-                            <Card className="p-3">
+                            <Card className="p-3 shadow">
                                 <Button
                                     variant="secondary"
                                     className="mb-3"
@@ -140,7 +136,7 @@ const Home = () => {
 
                                 <h3>{selectedMail.subject}</h3>
 
-                                <p>
+                                <p className="text-muted mb-3">
                                     <strong>From:</strong> {selectedMail.from}
                                 </p>
 
@@ -151,6 +147,18 @@ const Home = () => {
                                         __html: selectedMail.message,
                                     }}
                                 />
+
+                                <hr />
+
+                                <div className="d-flex justify-content-end">
+                                    <Button
+                                        variant="outline-danger"
+                                        size="sm"
+                                        onClick={() => deleteMailHandler(selectedMail.id)}
+                                    >
+                                        🗑 Delete
+                                    </Button>
+                                </div>
                             </Card>
                         ) : (
                             mails.length === 0 ? (
@@ -178,7 +186,7 @@ const Home = () => {
                                             {mail.subject}
                                         </h5>
 
-                                        <p>
+                                        <p className="mb-0">
                                             <strong>From:</strong> {mail.from}
                                         </p>
                                     </Card>
