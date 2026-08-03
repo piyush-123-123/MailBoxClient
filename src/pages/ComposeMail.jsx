@@ -2,11 +2,15 @@ import { useState } from "react";
 import { Container, Card, Form, Button } from "react-bootstrap";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { auth } from "../firebase"
+import { auth } from "../firebase";
+import useApi from "../hooks/useApi";
+
 
 const ComposeMail = () => {
+
     const [to, setTo] = useState("");
     const [subject, setSubject] = useState("");
+    const { sendRequest, loading, error } = useApi();
 
     const editor = useEditor({
         extensions: [StarterKit],
@@ -16,6 +20,7 @@ const ComposeMail = () => {
     const submitHandler = async (e) => {
 
         e.preventDefault();
+
         const senderEmail = auth.currentUser.email;
         const mailData = {
             from: senderEmail,
@@ -27,33 +32,17 @@ const ComposeMail = () => {
         const senderId = senderEmail.replace(/[.#$/[\]]/g, "_");
         const receiverId = to.trim().replace(/[.#$/[\]]/g, "_");
         try {
-            const response = await fetch(
-                `https://mailboxclient-9e998-default-rtdb.firebaseio.com/${senderId}/sent.json`,
-                {
-                    method: "POST",
-                    body: JSON.stringify(mailData),
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                }
-            );
-            if (!response.ok) {
-                throw new Error("Failed to send mail");
-            }
-            const receiverResponse = await fetch(
-                `https://mailboxclient-9e998-default-rtdb.firebaseio.com/${receiverId}/inbox.json`,
-                {
-                    method: "POST",
-                    body: JSON.stringify(mailData),
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                }
-            );
+            await sendRequest({
+                url: `https://mailboxclient-9e998-default-rtdb.firebaseio.com/${senderId}/sent.json`,
+                method: "POST",
+                body: mailData,
+            });
 
-            if (!receiverResponse.ok) {
-                throw new Error("Failed to deliver mail");
-            }
+            await sendRequest({
+                url: `https://mailboxclient-9e998-default-rtdb.firebaseio.com/${receiverId}/inbox.json`,
+                method: "POST",
+                body: mailData,
+            });
             alert("Mail sent successfully!");
         }
         catch (err) {
@@ -148,8 +137,8 @@ const ComposeMail = () => {
                         </Card>
                     </Form.Group>
 
-                    <Button type="submit">
-                        Send
+                    <Button type="submit" disabled={loading}>
+                        {loading ? "Sending..." : "Send"}
                     </Button>
 
                 </Form>
