@@ -35,15 +35,31 @@ const Home = () => {
             const userId = user.email.replace(/[.#$/[\]]/g, "_");
 
             dispatch(
-  fetchInboxMails({
-    userId,
-    folder,
-  })
-);
+                fetchInboxMails({
+                    userId,
+                    folder,
+                })
+            );
         });
 
         return () => unsubscribe();
-    }, [dispatch,folder]);
+    }, [dispatch, folder]);
+    useEffect(() => {
+        if (!auth.currentUser || folder !== "inbox") return;
+
+        const userId = auth.currentUser.email.replace(/[.#$/[\]]/g, "_");
+
+        const interval = setInterval(() => {
+            dispatch(
+                fetchInboxMails({
+                    userId,
+                    folder: "inbox",
+                })
+            );
+        }, 2000);
+
+        return () => clearInterval(interval);
+    }, [dispatch, folder]);
 
 
     const deleteMailHandler = (mailId) => {
@@ -86,21 +102,21 @@ const Home = () => {
 
 
     };
-    if (loading) {
+    if (loading && mails.length==0) {
         return <h3>Loading...</h3>;
     }
 
     if (error) {
         return <h3>{error}</h3>;
     }
-   const logoutHandler = async () => {
-    try {
-        await signOut(auth);
-        navigate("/login");
-    } catch (err) {
-        console.log(err.message);
-    }
-};
+    const logoutHandler = async () => {
+        try {
+            await signOut(auth);
+            navigate("/login");
+        } catch (err) {
+            console.log(err.message);
+        }
+    };
 
     return (
         <Container fluid>
@@ -116,12 +132,12 @@ const Home = () => {
                         >
                             Compose
                         </Button>
-                          <Button
-        variant="outline-light"
-        onClick={logoutHandler}
-    >
-        Logout
-    </Button>
+                        <Button
+                            variant="outline-light"
+                            onClick={logoutHandler}
+                        >
+                            Logout
+                        </Button>
                     </Navbar>
                 </Col>
             </Row>
@@ -169,10 +185,10 @@ const Home = () => {
 
                                 <h3>{selectedMail.subject}</h3>
 
-                               <p className="text-muted mb-3">
-    <strong>{folder === "inbox" ? "From" : "To"}:</strong>{" "}
-    {folder === "inbox" ? selectedMail.from : selectedMail.to}
-</p>
+                                <p className="text-muted mb-3">
+                                    <strong>{folder === "inbox" ? "From" : "To"}:</strong>{" "}
+                                    {folder === "inbox" ? selectedMail.from : selectedMail.to}
+                                </p>
 
                                 <hr />
 
@@ -220,10 +236,10 @@ const Home = () => {
                                             {mail.subject}
                                         </h5>
 
-                                       <p className="mb-0">
-    <strong>{folder === "inbox" ? "From" : "To"}:</strong>{" "}
-    {folder === "inbox" ? mail.from : mail.to}
-</p>
+                                        <p className="mb-0">
+                                            <strong>{folder === "inbox" ? "From" : "To"}:</strong>{" "}
+                                            {folder === "inbox" ? mail.from : mail.to}
+                                        </p>
                                     </Card>
                                 ))
                             )
