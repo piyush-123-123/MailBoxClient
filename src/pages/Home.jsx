@@ -14,6 +14,7 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 import useApi from "../hooks/useApi";
 
 const Home = () => {
+
   const [mails, setMails] = useState([]);
   const [selectedMail, setSelectedMail] = useState(null);
   const [folder, setFolder] = useState("inbox");
@@ -123,22 +124,10 @@ const Home = () => {
     }
   };
 
-  const logoutHandler = async () => {
-    try {
-      await signOut(auth);
-      navigate("/login");
-    } catch (err) {
-      console.log(err.message);
-    }
-  };
-
-  if (loading && mails.length === 0) {
-    return <h3>Loading...</h3>;
-  }
-
-  if (error) {
-    return <h3>{error}</h3>;
-  }
+const logoutHandler = () => {
+  localStorage.clear(); 
+  navigate("/login", { replace: true });
+};
 
   return (
     <Container fluid>
